@@ -1,7 +1,5 @@
 # Инструкции по запуску
 
-Следуйте этим шагам, чтобы успешно запустить проект.
-
 ## Шаг 1: Создание виртуального окружения
 
 ```bash
@@ -32,4 +30,18 @@ pip install -r requirements.txt
 
 ```bash
 python3 main.py
+```
+
+## Запуск через Docker
+
+Сначала выполните сборку Docker-образа:
+
+```bash
+docker build --tag metering_info_bot .
+```
+
+Затем запустите контейнер:
+
+```bash
+docker run -it metering_info_bot
 ```
