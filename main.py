@@ -2,6 +2,7 @@ import telebot
 from telebot import types
 import sheets_google
 import os
+from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
@@ -49,11 +50,17 @@ def ask_next_question(chat_id, message_id, flat_id, question_index):
 
         info = sheets_google.GoogleSheetsHandler(credentials_file, spreadsheet_id).read_data(flat_id, 'A1:E50', 'COLUMNS')
         # bot.send_message(chat_id, str(info['values']))
-        len_columns = len(info['values'][0])
+        len_columns = len(info['values'][1])
         # bot.send_message(chat_id, len_columns)
 
         start_row = len_columns + 1
-        write_range = f'A{start_row}:C{start_row}'
+        write_range = f'A{start_row}:D{start_row}'
+
+
+        # user_answers[flat_id].insert(0, (datetime.now(timezone.utc) + timedelta(hours=3)).strftime('%d.%m.%Y %H:%M:%S'))
+        user_answers[flat_id].insert(0, f'=DATEVALUE("{(datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M:%S")}")')
+        # user_answers[flat_id].insert(0, '=NOW()')
+
         data_list_to_write = [user_answers[flat_id]]
         # print(type(data_list_to_write))
 
@@ -100,6 +107,7 @@ def handle_messages(message):
 
         if flat_id not in user_answers:
             user_answers[flat_id] = []
+        
 
         user_answers[flat_id].append(user_answer)
         next_question_index = current_question_index + 1
