@@ -13,11 +13,35 @@ spreadsheet_id = os.getenv('SPREADSHEET_ID')
 googlesheets_link = os.getenv('GOOGLESHEETS_LINK')
 
 
-questions_list = [
-    "Показания счетчика ХВ",
-    "Показания счетчика ГВ",
-    "Показания счетчика электроэнергии",
-]
+questions_list = {
+    'flat0': [
+        "Показания счетчика электроэнергии Т1",
+        "Показания счетчика электроэнергии Т2",
+        "Показания счетчика ХВ",
+        "Показания счетчика ГВ",
+    ],
+    'flat1': [
+        "Показания счетчика электроэнергии Т1",
+        "Показания счетчика электроэнергии Т2",
+        "Показания счетчика электроэнергии Т3",
+        "Показания счетчика ХВ",
+        "Показания счетчика ГВ",
+    ],
+    'flat2': [
+        "Показания счетчика электроэнергии Т1",
+        "Показания счетчика электроэнергии Т2",
+        "Показания счетчика ХВ",
+        "Показания счетчика ГВ",
+    ],
+}
+
+sheet_indexes = {
+    'flat0': [0,2,5,8,11],
+    'flat1': [0,2,5,8,11],
+    'flat2': [0,2,5,8,11],
+}
+# sheet_indexes[flat_id]
+
 
 user_answers = {}
 user_states = {}
@@ -30,9 +54,18 @@ def set_user_state(chat_id, state):
 def get_user_state(chat_id):
     return user_states.get(chat_id, None)
 
+# def user_answers_index_into_sheets_index(user_ans, flat_id):
+#     sheets_row = [] * 12
+#     for index, sheet_index in enumerate(sheet_indexes[flat_id]):
+#         sheets_row[sheet_index] = user_ans[index]
+#     return sheets_row
+
+
 def ask_questions(chat_id, message_id, flat_id):
     set_user_state(chat_id, f'{QUESTION_STATE}_{flat_id}')
-    if flat_id == 'flat1':
+    if flat_id == 'flat0':
+        flat_address = 'Тестовая'
+    elif flat_id == 'flat1':
         flat_address = 'Бутлерова'
     elif flat_id == 'flat2':
         flat_address = 'Климашкина'
@@ -40,8 +73,8 @@ def ask_questions(chat_id, message_id, flat_id):
     ask_next_question(chat_id, message_id, flat_id, 0)
 
 def ask_next_question(chat_id, message_id, flat_id, question_index):
-    if question_index < len(questions_list):
-        current_question = questions_list[question_index]
+    if question_index < len(questions_list[flat_id]):
+        current_question = questions_list[flat_id][question_index]
         bot.send_message(chat_id, current_question)
     else:
         sent_message = bot.send_message(chat_id=chat_id, text="Показания счетчиков сохранены локально. Спасибо!")
@@ -50,21 +83,37 @@ def ask_next_question(chat_id, message_id, flat_id, question_index):
 
         info = sheets_google.GoogleSheetsHandler(credentials_file, spreadsheet_id).read_data(flat_id, 'A1:E50', 'COLUMNS')
         # bot.send_message(chat_id, str(info['values']))
-        len_columns = len(info['values'][1])
+        try:
+            len_columns = len(info['values'][0])
+        except:
+            len_columns = 0
         # bot.send_message(chat_id, len_columns)
 
-        start_row = len_columns + 1
-        write_range = f'A{start_row}:D{start_row}'
+        print('ДЛИНА КОЛОНОК-----------------------------------', len_columns)
 
+        start_row = len_columns + 1
+
+        write_range = f'A{start_row}:L{start_row}'
 
         # user_answers[flat_id].insert(0, (datetime.now(timezone.utc) + timedelta(hours=3)).strftime('%d.%m.%Y %H:%M:%S'))
         user_answers[flat_id].insert(0, f'=DATEVALUE("{(datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M:%S")}")')
         # user_answers[flat_id].insert(0, '=NOW()')
 
-        data_list_to_write = [user_answers[flat_id]]
-        # print(type(data_list_to_write))
+        
+        # print(user_answers_index_into_sheets_index(user_answers[flat_id], flat_id))
+        # data_list_to_write = [user_answers_index_into_sheets_index(user_answers[flat_id], flat_id)]
+        
 
-        sheets_google.GoogleSheetsHandler(credentials_file, spreadsheet_id).write_data(flat_id, write_range, data_list_to_write, 'ROWS')
+        # print(type(data_list_to_write))
+        dict_list_of_tuples_to_write = {
+            'flat0': [('A', start_row), ('C', start_row), ('F', start_row), ('I', start_row), ('L', start_row)],
+            'flat1': [('A', start_row), ('C', start_row), ('F', start_row), ('I', start_row), ('L', start_row)],
+            'flat2': [('A', start_row), ('C', start_row), ('F', start_row), ('I', start_row), ('L', start_row)],
+        }
+        
+        # sheets_google.GoogleSheetsHandler(credentials_file, spreadsheet_id).write_data_local_calculation(flat_id, write_range, data_list_to_write, 'ROWS')
+        sheets_google.GoogleSheetsHandler(credentials_file, spreadsheet_id).write_data_with_calculating_in_the_table(flat_id, dict_list_of_tuples_to_write[flat_id], user_answers[flat_id], 'ROWS')
+
         print('строка записана')
 
         
@@ -96,9 +145,13 @@ def handle_messages(message):
 
     if message.text == "Выбрать квартиру":
         markup = types.InlineKeyboardMarkup(row_width=2)
-        item1 = types.InlineKeyboardButton("Бутлерова", callback_data='flat1')
-        item2 = types.InlineKeyboardButton("Климашкина", callback_data='flat2')
-        markup.add(item1, item2)
+        item0 = types.InlineKeyboardButton("Тестовая", callback_data='flat0')
+
+        # item1 = types.InlineKeyboardButton("Бутлерова", callback_data='flat1')
+        # item2 = types.InlineKeyboardButton("Климашкина", callback_data='flat2')
+        # markup.add(item0, item1, item2)
+        markup.add(item0)
+
         bot.send_message(chat_id, 'Выбери квартиру из списка', reply_markup=markup)
     elif current_state and current_state.startswith(QUESTION_STATE):
         flat_id = current_state.split('_')[1]
@@ -131,5 +184,8 @@ def callback_handler(call):
         elif call.data == 'flat2':
             set_user_state(chat_id, QUESTION_STATE)
             ask_questions(chat_id, message_id, 'flat2')
+        elif call.data == 'flat0':
+            set_user_state(chat_id, QUESTION_STATE)
+            ask_questions(chat_id, message_id, 'flat0')
 
 bot.polling(none_stop=True)

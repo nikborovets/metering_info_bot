@@ -2,7 +2,7 @@ from pprint import pprint
 import httplib2
 import googleapiclient.discovery
 from oauth2client.service_account import ServiceAccountCredentials
-from typing import List, Any
+from typing import List, Tuple, Any
 from dotenv import load_dotenv, find_dotenv
 import os
 load_dotenv(find_dotenv())
@@ -35,23 +35,78 @@ class GoogleSheetsHandler:
         ).execute()
         return values
 
-    def write_data(self, sheet_name: str, range_name: str, data_list: List[List[Any]], majorDimension: str):
-        full_range = f'{sheet_name}!{range_name}'
-        start_row = int(range_name.split(':')[0][1:])
+    # def write_data_local_calculation(self, sheet_name: str, range_name: str, data_list: List[List[Any]], majorDimension: str):
+    #     full_range = f'{sheet_name}!{range_name}'
+    #     start_row = int(range_name.split(':')[0][1:])
+    #     body = {
+    #         "valueInputOption": "USER_ENTERED",
+    #         "data": [
+    #             {
+    #                 "range": full_range,
+    #                 "majorDimension": majorDimension,
+    #                 "values": data_list,
+    #             },
+    #         ]
+    #     }
+    #     values = self.service.spreadsheets().values().batchUpdate(
+    #         spreadsheetId=self.spreadsheet_id,
+    #         body=body
+    #     ).execute()
+
+    def write_data_with_calculating_in_the_table(self, sheet_name: str, data_coordinates: List[Tuple[str, int]], data_list: List[Any], majorDimension: str):
         body = {
             "valueInputOption": "USER_ENTERED",
-            "data": [
-                {
-                    "range": full_range,
-                    "majorDimension": majorDimension,
-                    "values": data_list,
-                },
-            ]
+            "data": []
         }
+        for i, (col, row) in enumerate(data_coordinates):
+            body["data"].append({
+                "range": f"{sheet_name}!{col}{row}:{col}{row}",
+                "majorDimension": "ROWS",
+                "values": [[data_list[i]]],
+                # "userEnteredFormat": {
+                # "textFormat": {
+                #     "fontFamily": 'Arial',
+                #     "fontSize": 11,
+                #     }
+                # }
+            })
+        print(body['data'])
         values = self.service.spreadsheets().values().batchUpdate(
             spreadsheetId=self.spreadsheet_id,
             body=body
         ).execute()
+
+        # fomatted_body = {
+        #     "requests": [{
+        #         "repeatCell": {
+        #             # "range": f"{sheet_name}!A{data_coordinates[0][1]}:Q{data_coordinates[0][1]}",
+        #             "range": {
+        #             "sheetId": 496456968,
+        #             "startRowIndex": data_coordinates[0][1],
+        #             "endRowIndex": data_coordinates[0][1],
+        #             "startColumnIndex": 0,
+        #             "endColumnIndex": 11
+        #             },
+        #             "cell": {
+        #                 "userEnteredFormat": {
+        #                     "textFormat": {
+        #                         "fontFamily": 'Arial',
+        #                         "fontSize": 11,
+        #                     }
+                            
+        #                 }
+        #             },
+        #             "fields": "userEnteredFormat.numberFormat"
+        #         }
+        #     },
+        #     ]
+        # }
+        # formatted_values = self.service.spreadsheets().batchUpdate(
+        #     spreadsheetId=self.spreadsheet_id,
+        #     body=fomatted_body
+        # ).execute()
+
+        
 
 if __name__ == "__main__":
 
