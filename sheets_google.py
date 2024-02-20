@@ -113,17 +113,18 @@ if __name__ == "__main__":
     sheets_handler = GoogleSheetsHandler(credentials_file, spreadsheet_id)
 
 
-    sheet_name = 'flat1'
+    sheet_name = 'flat0'
 
 
-    read_range = 'A1:E30'
+    read_range = 'A1:P50'
     read_values = sheets_handler.read_data(sheet_name, read_range, 'ROWS')
-    pprint(read_values)
+    print(read_values['values'][18], '\n\n', len(read_values['values']))
+   
 
 
-    data_list_to_write = [['1', 'John Doe', '500', '20.02.2023'],
-                          ['2', 'Jane Smith', '600', '21.02.2023'],
-                          ['3', 'Ivan Ivanov', '700', '22.02.2023']]
+    # data_list_to_write = [['1', 'John Doe', '500', '20.02.2023'],
+    #                       ['2', 'Jane Smith', '600', '21.02.2023'],
+    #                       ['3', 'Ivan Ivanov', '700', '22.02.2023']]
     
     # start_row = 1
     # write_range = f'A{start_row}:D{start_row + len(data_list_to_write)}'

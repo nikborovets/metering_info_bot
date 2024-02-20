@@ -35,9 +35,17 @@ questions_list = {
     ],
 }
 
-sheet_indexes = {
+def choose_row(row):
+    chosen_row = {
+        'flat0': [('A', row), ('C', row), ('F', row), ('I', row), ('L', row)],
+        'flat1': [('A', row), ('C', row), ('F', row), ('I', row), ('L', row), ('O', row)],
+        'flat2': [('A', row), ('C', row), ('F', row), ('I', row), ('L', row)],
+    }
+    return chosen_row
+
+sheet_value_indexes = {
     'flat0': [0,2,5,8,11],
-    'flat1': [0,2,5,8,11],
+    'flat1': [0,2,5,8,11,14],
     'flat2': [0,2,5,8,11],
 }
 # sheet_indexes[flat_id]
@@ -60,6 +68,10 @@ def get_user_state(chat_id):
 #         sheets_row[sheet_index] = user_ans[index]
 #     return sheets_row
 
+def sheet_values_func(flat_id):
+    sheet_values = sheets_google.GoogleSheetsHandler(credentials_file, spreadsheet_id).read_data(flat_id, 'A1:O50', 'ROWS')
+    return sheet_values
+
 
 def ask_questions(chat_id, message_id, flat_id):
     set_user_state(chat_id, f'{QUESTION_STATE}_{flat_id}')
@@ -69,7 +81,18 @@ def ask_questions(chat_id, message_id, flat_id):
         flat_address = 'Бутлерова'
     elif flat_id == 'flat2':
         flat_address = 'Климашкина'
-    bot.send_message(chat_id, f"Начинаем заполнение таблицы для квартиры <b>{flat_address}</b>. Введите:", parse_mode='html')
+
+    sheet_values = sheet_values_func(flat_id)
+    try:
+        len_sheet_columns = len(sheet_values['values'])  
+    except:
+        len_sheet_columns = 0
+
+    prev_month_info = ''
+    prev_month_info = f"Прошлая запись за {sheet_values['values'][len_sheet_columns-2][sheet_value_indexes[flat_id][0]]}\n"
+    for i in range(len(questions_list[flat_id])):
+        prev_month_info += f"{questions_list[flat_id][i][-2:]}: {sheet_values['values'][len_sheet_columns-2][sheet_value_indexes[flat_id][i+1]]}\n"
+    bot.send_message(chat_id, f"Начинаем заполнение таблицы для квартиры <b>{flat_address}</b>.\n\n{prev_month_info}\nВведите:", parse_mode='html')
     ask_next_question(chat_id, message_id, flat_id, 0)
 
 def ask_next_question(chat_id, message_id, flat_id, question_index):
@@ -81,7 +104,7 @@ def ask_next_question(chat_id, message_id, flat_id, question_index):
         print(user_answers[flat_id], flat_id)
         print(type(user_answers[flat_id]), type(flat_id))
 
-        info = sheets_google.GoogleSheetsHandler(credentials_file, spreadsheet_id).read_data(flat_id, 'A1:E50', 'COLUMNS')
+        info = sheets_google.GoogleSheetsHandler(credentials_file, spreadsheet_id).read_data(flat_id, 'A1:O50', 'COLUMNS')
         # bot.send_message(chat_id, str(info['values']))
         try:
             len_columns = len(info['values'][0])
@@ -107,7 +130,7 @@ def ask_next_question(chat_id, message_id, flat_id, question_index):
         # print(type(data_list_to_write))
         dict_list_of_tuples_to_write = {
             'flat0': [('A', start_row), ('C', start_row), ('F', start_row), ('I', start_row), ('L', start_row)],
-            'flat1': [('A', start_row), ('C', start_row), ('F', start_row), ('I', start_row), ('L', start_row)],
+            'flat1': [('A', start_row), ('C', start_row), ('F', start_row), ('I', start_row), ('L', start_row), ('O', start_row)],
             'flat2': [('A', start_row), ('C', start_row), ('F', start_row), ('I', start_row), ('L', start_row)],
         }
         
@@ -147,10 +170,10 @@ def handle_messages(message):
         markup = types.InlineKeyboardMarkup(row_width=2)
         item0 = types.InlineKeyboardButton("Тестовая", callback_data='flat0')
 
-        # item1 = types.InlineKeyboardButton("Бутлерова", callback_data='flat1')
-        # item2 = types.InlineKeyboardButton("Климашкина", callback_data='flat2')
-        # markup.add(item0, item1, item2)
-        markup.add(item0)
+        item1 = types.InlineKeyboardButton("Бутлерова", callback_data='flat1')
+        item2 = types.InlineKeyboardButton("Климашкина", callback_data='flat2')
+        markup.add(item0, item1, item2)
+        # markup.add(item0)
 
         bot.send_message(chat_id, 'Выбери квартиру из списка', reply_markup=markup)
     elif current_state and current_state.startswith(QUESTION_STATE):
@@ -175,17 +198,29 @@ def callback_handler(call):
     chat_id = call.message.chat.id
     message_id = call.message.message_id
     if call.message:
-        if call.data == 'flat1':
-            # info = sheets_google.GoogleSheetsHandler(credentials_file, spreadsheet_id).read_data('flat1', 'A1:E10', 'COLUMNS')
-            # bot.send_message(call.message.chat.id, str(info['values']))
-            # bot.send_message(call.message.chat.id, str(len(info['values'][0])))
+        if call.data in ['flat0', 'flat1', 'flat2']:
+            # sheet_values = sheets_google.GoogleSheetsHandler(credentials_file, spreadsheet_id).read_data(call.data, 'A1:O50', 'ROWS')
+            # try:
+            #     len_sheet_columns = len(sheet_values['values'])
+            # except:
+            #     len_sheet_columns = 0
             set_user_state(chat_id, QUESTION_STATE)
-            ask_questions(chat_id, message_id, 'flat1')
-        elif call.data == 'flat2':
-            set_user_state(chat_id, QUESTION_STATE)
-            ask_questions(chat_id, message_id, 'flat2')
-        elif call.data == 'flat0':
-            set_user_state(chat_id, QUESTION_STATE)
-            ask_questions(chat_id, message_id, 'flat0')
+            ask_questions(chat_id, message_id, call.data)
+        
+
+        # if call.data == 'flat1':
+        #     # info = sheets_google.GoogleSheetsHandler(credentials_file, spreadsheet_id).read_data('flat1', 'A1:E10', 'COLUMNS')
+        #     # bot.send_message(call.message.chat.id, str(info['values']))
+        #     # bot.send_message(call.message.chat.id, str(len(info['values'][0])))
+        #     set_user_state(chat_id, QUESTION_STATE)
+        #     ask_questions(chat_id, message_id, 'flat1')
+        # elif call.data == 'flat2':
+        #     set_user_state(chat_id, QUESTION_STATE)
+        #     ask_questions(chat_id, message_id, 'flat2')
+        # elif call.data == 'flat0':
+        #     set_user_state(chat_id, QUESTION_STATE)
+        #     ask_questions(chat_id, message_id, 'flat0')
+
+
 
 bot.polling(none_stop=True)
