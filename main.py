@@ -4,6 +4,7 @@ import sheets_google
 import os
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv, find_dotenv
+import locale
 load_dotenv(find_dotenv())
 
 bot = telebot.TeleBot(os.getenv('TOKEN'))
@@ -12,6 +13,7 @@ credentials_file = 'creds.json'
 spreadsheet_id = os.getenv('SPREADSHEET_ID')
 googlesheets_link = os.getenv('GOOGLESHEETS_LINK')
 
+locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
 questions_list = {
     'flat0': [
@@ -145,6 +147,19 @@ def ask_next_question(chat_id, message_id, flat_id, question_index):
         updated_message = f"Показания счетчиков сохранены в {link_text}. Спасибо!"
         bot.edit_message_text(chat_id=chat_id, message_id=sent_message.message_id, text=updated_message, parse_mode='Markdown')
 
+        final_info = sheets_google.GoogleSheetsHandler(credentials_file, spreadsheet_id).read_data(flat_id, f'A{start_row-1}:U{start_row}', 'ROWS')
+        # 15 - итоговая сумма (-3)
+        # 16 - дата (-2)
+        # 17 - адрес квартиры (-1)
+        print('\n\n', final_info['values'])
+
+
+        cur_date = datetime.strptime(final_info['values'][1][-2], "%d.%m.%Y").strftime("%d %B")
+        prev_date = datetime.strptime(final_info['values'][0][-2], "%d.%m.%Y").strftime("%d %B")
+
+        bot.send_message(chat_id=chat_id, text=f"Итоговая сумма квартплаты по адресу {final_info['values'][1][-1]} в период с {prev_date} по {cur_date} получается <b>{final_info['values'][1][-3]}</b> рублей", parse_mode='html')
+
+
         user_answers[flat_id] = []
         set_user_state(chat_id, None)
 
@@ -173,6 +188,8 @@ def handle_messages(message):
         item1 = types.InlineKeyboardButton("Бутлерова", callback_data='flat1')
         item2 = types.InlineKeyboardButton("Климашкина", callback_data='flat2')
         markup.add(item0, item1, item2)
+        # markup.add(item1, item2)
+
         # markup.add(item0)
 
         bot.send_message(chat_id, 'Выбери квартиру из списка', reply_markup=markup)
