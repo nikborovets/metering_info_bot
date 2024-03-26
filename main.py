@@ -37,20 +37,31 @@ questions_list = {
     ],
 }
 
-def choose_row(row):
-    chosen_row = {
-        'flat0': [('A', row), ('C', row), ('F', row), ('I', row), ('L', row)],
-        'flat1': [('A', row), ('C', row), ('F', row), ('I', row), ('L', row), ('O', row)],
-        'flat2': [('A', row), ('C', row), ('F', row), ('I', row), ('L', row)],
-    }
-    return chosen_row
+# def choose_row(row):
+#     chosen_row = {
+#         'flat0': [('A', row), ('C', row), ('F', row), ('I', row), ('L', row)],
+#         'flat1': [('A', row), ('C', row), ('F', row), ('I', row), ('L', row), ('O', row)],
+#         'flat2': [('A', row), ('C', row), ('F', row), ('I', row), ('L', row)],
+#     }
+#     return chosen_row
 
 sheet_value_indexes = {
     'flat0': [0,2,5,8,11],
     'flat1': [0,2,5,8,11,14],
     'flat2': [0,2,5,8,11],
 }
-# sheet_indexes[flat_id]
+
+sheet_link = {
+    'flat0': '#gid=496456968',
+    'flat1': '#gid=0',
+    'flat2': '#gid=255523584',
+}
+
+all_flat_info = {
+    'flat0': 'Тестовая',
+    'flat1': 'Бутлерова',
+    'flat2': 'Климашкина',
+}
 
 
 user_answers = {}
@@ -77,12 +88,14 @@ def sheet_values_func(flat_id):
 
 def ask_questions(chat_id, message_id, flat_id):
     set_user_state(chat_id, f'{QUESTION_STATE}_{flat_id}')
-    if flat_id == 'flat0':
-        flat_address = 'Тестовая'
-    elif flat_id == 'flat1':
-        flat_address = 'Бутлерова'
-    elif flat_id == 'flat2':
-        flat_address = 'Климашкина'
+    # if flat_id == 'flat0':
+    #     flat_address = 'Тестовая'
+    # elif flat_id == 'flat1':
+    #     flat_address = 'Бутлерова'
+    # elif flat_id == 'flat2':
+    #     flat_address = 'Климашкина'
+    flat_address = all_flat_info[flat_id]
+
 
     sheet_values = sheet_values_func(flat_id)
     try:
@@ -99,6 +112,10 @@ def ask_questions(chat_id, message_id, flat_id):
 
 def ask_next_question(chat_id, message_id, flat_id, question_index):
     if question_index < len(questions_list[flat_id]):
+        ############### ПОДУМАТЬ КАК СДЕЛАТЬ ПРОВЕРКУ НА ВВОД ЗНАЧЕНИЯ СЧЕТЧИКА
+
+        # if (user_answers[question_index-1] < prev_month_info[question_index-1]):
+        #     bot.send_message(chat_id, "Введенное значение меньше предыдущего. Попробуйте еще раз.")
         current_question = questions_list[flat_id][question_index]
         bot.send_message(chat_id, current_question)
     else:
@@ -118,7 +135,7 @@ def ask_next_question(chat_id, message_id, flat_id, question_index):
 
         start_row = len_columns + 1
 
-        write_range = f'A{start_row}:L{start_row}'
+        # write_range = f'A{start_row}:L{start_row}'
 
         # user_answers[flat_id].insert(0, (datetime.now(timezone.utc) + timedelta(hours=3)).strftime('%d.%m.%Y %H:%M:%S'))
         user_answers[flat_id].insert(0, f'=DATEVALUE("{(datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M:%S")}")')
@@ -142,7 +159,7 @@ def ask_next_question(chat_id, message_id, flat_id, question_index):
         print('строка записана')
 
         
-        link_text = f"[GoogleSheets]({googlesheets_link})"
+        link_text = f"[GoogleSheets]({googlesheets_link+sheet_link[flat_id]})"
 
         updated_message = f"Показания счетчиков сохранены в {link_text}. Спасибо!"
         bot.edit_message_text(chat_id=chat_id, message_id=sent_message.message_id, text=updated_message, parse_mode='Markdown')
@@ -156,9 +173,10 @@ def ask_next_question(chat_id, message_id, flat_id, question_index):
 
         cur_date = datetime.strptime(final_info['values'][1][-2], "%d.%m.%Y").strftime("%d %B")
         prev_date = datetime.strptime(final_info['values'][0][-2], "%d.%m.%Y").strftime("%d %B")
-
-        bot.send_message(chat_id=chat_id, text=f"Итоговая сумма квартплаты по адресу {final_info['values'][1][-1]} в период с {prev_date} по {cur_date} получается <b>{final_info['values'][1][-3]}</b> рублей", parse_mode='html')
-
+        if (float(final_info['values'][1][-3].replace(",", ".")) >= 0):
+            bot.send_message(chat_id=chat_id, text=f"Итоговая сумма квартплаты по адресу {final_info['values'][1][-1]} в период с {prev_date} по {cur_date} получается <b>{final_info['values'][1][-3]}</b> рублей", parse_mode='html')
+        else:
+            bot.send_message(chat_id=chat_id, text=f"Получилось отрицателное значение. Зайдите в таблицу и исправьте значения вручную.", parse_mode='html')
 
         user_answers[flat_id] = []
         set_user_state(chat_id, None)
@@ -239,5 +257,5 @@ def callback_handler(call):
         #     ask_questions(chat_id, message_id, 'flat0')
 
 
-
+print('hohoho')
 bot.polling(none_stop=True)
