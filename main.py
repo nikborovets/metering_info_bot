@@ -174,7 +174,7 @@ def ask_next_question(chat_id, message_id, flat_id, question_index):
         cur_date = datetime.strptime(final_info['values'][1][-2], "%d.%m.%Y").strftime("%d %B")
         prev_date = datetime.strptime(final_info['values'][0][-2], "%d.%m.%Y").strftime("%d %B")
         if (float(final_info['values'][1][-3].replace(",", ".")) >= 0):
-            bot.send_message(chat_id=chat_id, text=f"Итоговая сумма квартплаты по адресу {final_info['values'][1][-1]} в период с {prev_date} по {cur_date} получается <b>{final_info['values'][1][-3]}</b> рублей", parse_mode='html')
+            bot.send_message(chat_id=chat_id, text=f"Итоговая сумма квартплаты по адресу <b>{final_info['values'][1][-1]}</b> в период с {prev_date} по {cur_date} получается <b>{final_info['values'][1][-3]}</b> рублей", parse_mode='html')
         else:
             bot.send_message(chat_id=chat_id, text=f"Получилось отрицателное значение. Зайдите в таблицу и исправьте значения вручную.", parse_mode='html')
 
@@ -212,18 +212,26 @@ def handle_messages(message):
 
         bot.send_message(chat_id, 'Выбери квартиру из списка', reply_markup=markup)
     elif current_state and current_state.startswith(QUESTION_STATE):
-        flat_id = current_state.split('_')[1]
-        current_question_index = len(user_answers.get(flat_id, []))
-        user_answer = message.text
+        try:
+            userInput = float(message.text)      
+        except ValueError:
+            bot.send_message(message.chat.id, f"Вводимое значение должно быть числом.", parse_mode='html')
+            return
+        else:
+            flat_id = current_state.split('_')[1]
+            current_question_index = len(user_answers.get(flat_id, []))
 
-        if flat_id not in user_answers:
-            user_answers[flat_id] = []
-        
 
-        user_answers[flat_id].append(user_answer)
-        next_question_index = current_question_index + 1
+            user_answer = message.text
 
-        ask_next_question(chat_id, message_id, flat_id, next_question_index)
+            if flat_id not in user_answers:
+                user_answers[flat_id] = []
+            
+
+            user_answers[flat_id].append(user_answer)
+            next_question_index = current_question_index + 1
+
+            ask_next_question(chat_id, message_id, flat_id, next_question_index)
     else:
         bot.send_message(chat_id, "Это обработка вне состояния вопросов.")
 
