@@ -245,7 +245,7 @@ def handle_messages(message):
 
 
 @bot.callback_query_handler(func=lambda call: True)
-@authorized_only
+# @authorized_only
 def callback_handler(call):
     chat_id = call.message.chat.id
     message_id = call.message.message_id

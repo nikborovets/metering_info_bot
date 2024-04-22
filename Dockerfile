@@ -1,4 +1,4 @@
-FROM python:3.8
+FROM python:3.9.6
 
 # RUN pip install --upgrade pip
 RUN apt-get update && \
@@ -14,4 +14,4 @@ COPY . /app
 
 RUN pip install -r requirements.txt
 
-CMD ["python3", "main.py"]
+# CMD ["python3", "main.py"]
