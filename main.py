@@ -5,6 +5,8 @@ import os
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv, find_dotenv
 import locale
+from functools import wraps
+
 load_dotenv(find_dotenv())
 
 bot = telebot.TeleBot(os.getenv('TOKEN'))
@@ -12,8 +14,11 @@ bot = telebot.TeleBot(os.getenv('TOKEN'))
 credentials_file = 'creds.json'
 spreadsheet_id = os.getenv('SPREADSHEET_ID')
 googlesheets_link = os.getenv('GOOGLESHEETS_LINK')
+authorized_users = list(map(int, os.getenv('AUTHORIZED_USERS').split(",")))
+# [Коля, Андрей, Папа, Мама]
 
 locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
+
 
 questions_list = {
     'flat0': [
@@ -68,6 +73,17 @@ user_answers = {}
 user_states = {}
 
 QUESTION_STATE = 'questionstate'
+
+def authorized_only(func):
+    @wraps(func)
+    def wrapper(message):
+        chat_id = message.chat.id
+        if chat_id in authorized_users:
+            return func(message)
+        else:
+            bot.send_message(chat_id, "Вы не являетесь авторизованным пользователем")
+    return wrapper
+
 
 def set_user_state(chat_id, state):
     user_states[chat_id] = state
@@ -175,6 +191,7 @@ def check_len_sheets_columns(data):
     return len(data['values'][0])
 
 @bot.message_handler(commands=['start'])
+@authorized_only
 def start_message(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     item1 = types.KeyboardButton("Выбрать квартиру")
@@ -184,6 +201,7 @@ def start_message(message):
         parse_mode='html', reply_markup=markup)
 
 @bot.message_handler(func=lambda message: True)
+@authorized_only
 def handle_messages(message):
     chat_id = message.chat.id
     message_id = message.message_id
@@ -227,6 +245,7 @@ def handle_messages(message):
 
 
 @bot.callback_query_handler(func=lambda call: True)
+@authorized_only
 def callback_handler(call):
     chat_id = call.message.chat.id
     message_id = call.message.message_id
