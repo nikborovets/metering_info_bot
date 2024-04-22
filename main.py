@@ -75,11 +75,6 @@ def set_user_state(chat_id, state):
 def get_user_state(chat_id):
     return user_states.get(chat_id, None)
 
-# def user_answers_index_into_sheets_index(user_ans, flat_id):
-#     sheets_row = [] * 12
-#     for index, sheet_index in enumerate(sheet_indexes[flat_id]):
-#         sheets_row[sheet_index] = user_ans[index]
-#     return sheets_row
 
 def sheet_values_func(flat_id):
     sheet_values = sheets_google.GoogleSheetsHandler(credentials_file, spreadsheet_id).read_data(flat_id, 'A1:O50', 'ROWS')
@@ -88,12 +83,7 @@ def sheet_values_func(flat_id):
 
 def ask_questions(chat_id, message_id, flat_id):
     set_user_state(chat_id, f'{QUESTION_STATE}_{flat_id}')
-    # if flat_id == 'flat0':
-    #     flat_address = 'Тестовая'
-    # elif flat_id == 'flat1':
-    #     flat_address = 'Бутлерова'
-    # elif flat_id == 'flat2':
-    #     flat_address = 'Климашкина'
+
     flat_address = all_flat_info[flat_id]
 
 
@@ -242,11 +232,7 @@ def callback_handler(call):
     message_id = call.message.message_id
     if call.message:
         if call.data in ['flat0', 'flat1', 'flat2']:
-            # sheet_values = sheets_google.GoogleSheetsHandler(credentials_file, spreadsheet_id).read_data(call.data, 'A1:O50', 'ROWS')
-            # try:
-            #     len_sheet_columns = len(sheet_values['values'])
-            # except:
-            #     len_sheet_columns = 0
+
             set_user_state(chat_id, QUESTION_STATE)
             ask_questions(chat_id, message_id, call.data)
         
