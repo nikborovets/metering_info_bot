@@ -76,36 +76,6 @@ class GoogleSheetsHandler:
             body=body
         ).execute()
 
-        # fomatted_body = {
-        #     "requests": [{
-        #         "repeatCell": {
-        #             # "range": f"{sheet_name}!A{data_coordinates[0][1]}:Q{data_coordinates[0][1]}",
-        #             "range": {
-        #             "sheetId": 496456968,
-        #             "startRowIndex": data_coordinates[0][1],
-        #             "endRowIndex": data_coordinates[0][1],
-        #             "startColumnIndex": 0,
-        #             "endColumnIndex": 11
-        #             },
-        #             "cell": {
-        #                 "userEnteredFormat": {
-        #                     "textFormat": {
-        #                         "fontFamily": 'Arial',
-        #                         "fontSize": 11,
-        #                     }
-                            
-        #                 }
-        #             },
-        #             "fields": "userEnteredFormat.numberFormat"
-        #         }
-        #     },
-        #     ]
-        # }
-        # formatted_values = self.service.spreadsheets().batchUpdate(
-        #     spreadsheetId=self.spreadsheet_id,
-        #     body=fomatted_body
-        # ).execute()
-
         
 
 if __name__ == "__main__":
