@@ -77,12 +77,16 @@ QUESTION_STATE = 'questionstate'
 def authorized_only(func):
     @wraps(func)
     def wrapper(message):
-        chat_id = message.chat.id
+        if isinstance(message, types.CallbackQuery):
+            chat_id = message.message.chat.id
+        else:
+            chat_id = message.chat.id
         if chat_id in authorized_users:
             return func(message)
         else:
             bot.send_message(chat_id, "Вы не являетесь авторизованным пользователем")
     return wrapper
+
 
 
 def set_user_state(chat_id, state):
@@ -102,14 +106,12 @@ def ask_questions(chat_id, message_id, flat_id):
 
     flat_address = all_flat_info[flat_id]
 
-
     sheet_values = sheet_values_func(flat_id)
     try:
         len_sheet_columns = len(sheet_values['values'])  
     except:
         len_sheet_columns = 0
 
-    prev_month_info = ''
     prev_month_info = f"Прошлая запись за {sheet_values['values'][len_sheet_columns-2][sheet_value_indexes[flat_id][0]]}\n"
     for i in range(len(questions_list[flat_id])):
         prev_month_info += f"{questions_list[flat_id][i][-2:]}: {sheet_values['values'][len_sheet_columns-2][sheet_value_indexes[flat_id][i+1]]}\n"
@@ -251,9 +253,9 @@ def callback_handler(call):
     message_id = call.message.message_id
     if call.message:
         if call.data in ['flat0', 'flat1', 'flat2']:
-
             set_user_state(chat_id, QUESTION_STATE)
             ask_questions(chat_id, message_id, call.data)
+
         
 
         # if call.data == 'flat1':
