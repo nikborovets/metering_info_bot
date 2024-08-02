@@ -9,9 +9,9 @@ RUN apt-get update && \
 ENV LANG ru_RU.UTF-8
 ENV LC_ALL ru_RU.UTF-8
 
-WORKDIR /app
-COPY . /app
-
+COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
+
+COPY . .
 
 # CMD ["python3", "main.py"]
